@@ -21,3 +21,7 @@ __pycache__/
 
 # 기타
 .DS_Store
+
+# 환경 변수 파일
+.env
+.env.*
