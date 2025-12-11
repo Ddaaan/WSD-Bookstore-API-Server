@@ -1,0 +1,23 @@
+# 가상환경
+venv/
+.env/
+.venv/
+
+# 파이썬 캐시 파일
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# IDE / 편집기 설정
+.vscode/
+.idea/
+*.iml
+
+# 로그 / 데이터베이스 / 임시파일
+*.log
+*.sqlite3
+*.db
+
+# 기타
+.DS_Store
