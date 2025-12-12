@@ -32,6 +32,8 @@ def register_blueprints(app):
     from .routes.review_likes import bp as review_likes_bp
     from .routes.comments import bp as comments_bp
     from .routes.wishlists import bp as wishlists_bp
+    from .routes.cart import bp as cart_bp
+    from .routes.orders import bp as orders_bp
 
     app.register_blueprint(health_bp, url_prefix="/health")
     app.register_blueprint(users_bp, url_prefix="/users")
@@ -43,3 +45,4 @@ def register_blueprints(app):
     app.register_blueprint(comments_bp)
     app.register_blueprint(wishlists_bp, url_prefix="/wishlists")
     app.register_blueprint(cart_bp, url_prefix="/cart")
+    app.register_blueprint(orders_bp, url_prefix="/orders")
