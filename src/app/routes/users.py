@@ -10,7 +10,7 @@ def create_user():
     data = request.get_json() or {}
 
     email = data.get("email")
-    password = data.get("password")
+    password = data.get("password")  # 입력은 password
     name = data.get("name")
 
     if not email or not password or not name:
@@ -19,7 +19,11 @@ def create_user():
     if User.query.filter_by(email=email).first():
         return jsonify({"message": "이미 사용 중인 이메일입니다."}), 409
 
-    user = User(email=email, password=password, name=name)
+    user = User(
+        email=email,
+        name=name,
+        password_hash=password,  # DB 컬럼은 password_hash
+    )
     db.session.add(user)
     db.session.commit()
 
@@ -29,7 +33,6 @@ def create_user():
         "name": user.name,
         "role": user.role
     }), 201
-
 
 # 사용자 목록 조회
 @bp.route("", methods=["GET"])

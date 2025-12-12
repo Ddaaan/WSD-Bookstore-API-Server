@@ -1,12 +1,20 @@
 from datetime import datetime
 from ..extensions import db
 
+
 class Book(db.Model):
     __tablename__ = "books"
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True)
     title = db.Column(db.String(255), nullable=False, index=True)
-    author = db.Column(db.String(255), nullable=False, index=True)
-    price = db.Column(db.Integer, nullable=False)
-    stock = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    description = db.Column(db.Text, nullable=True)
+    price = db.Column(db.Numeric(12, 2), nullable=False)
+    isbn13 = db.Column(db.String(13), nullable=True, unique=True, index=True)
+    published_at = db.Column(db.Date, nullable=True)
+    stock_cnt = db.Column(db.Integer, nullable=False, default=0)
+    status = db.Column(db.String(20), nullable=False, default="ACTIVE")  # ACTIVE / DISCONTINUED
+
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )

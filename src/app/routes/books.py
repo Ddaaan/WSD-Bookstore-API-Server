@@ -10,23 +10,30 @@ def create_book():
     data = request.get_json() or {}
 
     title = data.get("title")
-    author = data.get("author")
     price = data.get("price")
-    stock = data.get("stock", 0)
+    stock = data.get("stock_cnt", 0)
 
-    if not title or not author or price is None:
-        return jsonify({"message": "title, author, price 는 필수입니다."}), 400
+    if not title or price is None:
+        return jsonify({"message": "title, price 는 필수입니다."}), 400
 
-    book = Book(title=title, author=author, price=price, stock=stock)
+    book = Book(
+        title=title,
+        description=data.get("description"),
+        price=price,
+        isbn13=data.get("isbn13"),
+        published_at=data.get("published_at"),
+        stock_cnt=stock,
+        status=data.get("status", "ACTIVE"),
+    )
     db.session.add(book)
     db.session.commit()
 
     return jsonify({
         "id": book.id,
         "title": book.title,
-        "author": book.author,
-        "price": book.price,
-        "stock": book.stock
+        "price": str(book.price),
+        "stock_cnt": book.stock_cnt,
+        "status": book.status
     }), 201
 
 
