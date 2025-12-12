@@ -1,11 +1,13 @@
 from datetime import datetime
 from decimal import Decimal
 
-from flask import Blueprint, request, jsonify, g 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from ..extensions import db
-from ..models import Order, OrderItem, User, Book, Cart
+from ..models import Order, OrderItem, User, Book
 from ..auth_utils import jwt_required
+from ..error_handlers import ApiError
+from ..error_codes import ErrorCodes
+from ..pagination import apply_pagination_and_sort
 
 bp = Blueprint("orders", __name__)
 
@@ -23,23 +25,59 @@ def decimal_to_str(value):
 @bp.route("", methods=["POST"])
 @jwt_required()   # 로그인한 사용자만 주문 생성 가능
 def create_order():
+    """
+    주문 생성
+    요청 예시:
+    {
+      "user_id": 1,
+      "items": [
+        { "book_id": 1, "quantity": 2 },
+        { "book_id": 3, "quantity": 1 }
+      ]
+    }
+    """
     data = request.get_json() or {}
 
     user_id = data.get("user_id")
-
     if not user_id:
-        return jsonify({"message": "user_id 는 필수입니다."}), 400
+        raise ApiError(
+            status_code=400,
+            code=ErrorCodes.VALIDATION_FAILED,
+            message="user_id 는 필수입니다.",
+        )
 
-    if int(user_id) != g.current_user.id and g.current_user.role != "ADMIN":
-        return jsonify({"message": "본인 주문만 생성할 수 있습니다."}), 403
+    try:
+        user_id_int = int(user_id)
+    except ValueError:
+        raise ApiError(
+            status_code=400,
+            code=ErrorCodes.INVALID_QUERY_PARAM,
+            message="user_id 는 정수여야 합니다.",
+        )
 
-    user = User.query.get(user_id)
+    # 본인 또는 ADMIN만 해당 user_id로 주문 생성 가능
+    if user_id_int != g.current_user.id and g.current_user.role != "ADMIN":
+        raise ApiError(
+            status_code=403,
+            code=ErrorCodes.FORBIDDEN,
+            message="본인 주문만 생성할 수 있습니다.",
+        )
+
+    user = User.query.get(user_id_int)
     if not user:
-        return jsonify({"message": "사용자를 찾을 수 없습니다."}), 404
+        raise ApiError(
+            status_code=404,
+            code=ErrorCodes.USER_NOT_FOUND,
+            message="사용자를 찾을 수 없습니다.",
+        )
 
     items = data.get("items", [])
     if not items:
-        return jsonify({"message": "주문할 items 배열은 비어 있을 수 없습니다."}), 400
+        raise ApiError(
+            status_code=400,
+            code=ErrorCodes.VALIDATION_FAILED,
+            message="주문할 items 배열은 비어 있을 수 없습니다.",
+        )
 
     order_items: list[OrderItem] = []
     total_amount = Decimal("0")
@@ -50,25 +88,48 @@ def create_order():
         quantity = item.get("quantity", 1)
 
         if not book_id:
-            return jsonify({"message": "각 항목의 book_id 는 필수입니다."}), 400
+            raise ApiError(
+                status_code=400,
+                code=ErrorCodes.VALIDATION_FAILED,
+                message="각 항목의 book_id 는 필수입니다.",
+            )
 
         try:
             quantity = int(quantity)
         except ValueError:
-            return jsonify({"message": "quantity 는 정수여야 합니다."}), 400
+            raise ApiError(
+                status_code=400,
+                code=ErrorCodes.VALIDATION_FAILED,
+                message="quantity 는 정수여야 합니다.",
+            )
 
         if quantity < 1:
-            return jsonify({"message": "quantity 는 최소 1 이상이어야 합니다."}), 400
+            raise ApiError(
+                status_code=400,
+                code=ErrorCodes.VALIDATION_FAILED,
+                message="quantity 는 최소 1 이상이어야 합니다.",
+            )
 
         book = Book.query.get(book_id)
         if not book:
-            return jsonify({"message": f"도서를 찾을 수 없습니다. book_id={book_id}"}), 404
+            raise ApiError(
+                status_code=404,
+                code=ErrorCodes.RESOURCE_NOT_FOUND,
+                message=f"도서를 찾을 수 없습니다.",
+                details={"book_id": book_id},
+            )
 
         if book.stock_cnt is not None and book.stock_cnt < quantity:
-            return jsonify({
-                "message": "재고가 부족하여 주문할 수 없습니다.",
-                "details": f"book_id={book_id}, 재고={book.stock_cnt}, 요청수량={quantity}"
-            }), 409
+            raise ApiError(
+                status_code=409,
+                code=ErrorCodes.STATE_CONFLICT,
+                message="재고가 부족하여 주문할 수 없습니다.",
+                details={
+                    "book_id": book_id,
+                    "stock_cnt": book.stock_cnt,
+                    "requested": quantity,
+                },
+            )
 
         oi = OrderItem(
             book_id=book_id,
@@ -78,14 +139,16 @@ def create_order():
         order_items.append(oi)
         total_amount += (book.price * quantity)
 
+    # 주문 생성
     order = Order(
-        user_id=user_id,
+        user_id=user_id_int,
         status="PENDING",
         total_amount=total_amount,
     )
     db.session.add(order)
-    db.session.flush()
+    db.session.flush()  # order.id 확보
 
+    # 주문 항목 저장 + 재고 차감
     for oi in order_items:
         oi.order_id = order.id
         db.session.add(oi)
@@ -105,28 +168,43 @@ def create_order():
 
 
 @bp.route("", methods=["GET"])
+@jwt_required()
 def list_orders():
     """
     주문 목록 조회
     쿼리 파라미터:
-      - user_id: 해당 사용자의 주문만 조회
-      - status: 특정 상태만 필터링 (PENDING, PAID, CANCELLED, SHIPPED, COMPLETED)
+      - user_id (ADMIN일 때 다른 사용자 주문 조회용)
+      - status
+      - page, size
+      - sort=created_at,DESC
     """
     query = Order.query.filter(Order.deleted_at.is_(None))
 
-    user_id = request.args.get("user_id")
-    status = request.args.get("status")
+    user_id_param = request.args.get("user_id")
+    if user_id_param:
+        # ADMIN이면 파라미터 기준, 일반 유저는 무시하고 자기 것만
+        if g.current_user.role == "ADMIN":
+            query = query.filter(Order.user_id == user_id_param)
+        else:
+            query = query.filter(Order.user_id == g.current_user.id)
+    else:
+        # user_id가 없으면 자기 주문만
+        query = query.filter(Order.user_id == g.current_user.id)
 
-    if user_id:
-        query = query.filter(Order.user_id == user_id)
+    status = request.args.get("status")
     if status:
         query = query.filter(Order.status == status)
 
-    orders = query.order_by(Order.created_at.desc()).all()
+    orders, meta = apply_pagination_and_sort(
+        query=query,
+        model=Order,
+        default_sort_field="created_at",
+        default_sort_dir="DESC",
+    )
 
-    result = []
+    content = []
     for o in orders:
-        result.append({
+        content.append({
             "id": o.id,
             "user_id": o.user_id,
             "status": o.status,
@@ -135,17 +213,35 @@ def list_orders():
             "created_at": o.created_at.isoformat(),
         })
 
-    return jsonify(result), 200
+    response = {
+        "content": content,
+        **meta,
+    }
+    return jsonify(response), 200
 
 
 @bp.route("/<int:order_id>", methods=["GET"])
+@jwt_required()
 def get_order_detail(order_id):
     """
     주문 상세 조회 (주문 + 주문항목)
+    - 일반 유저: 자신의 주문만 조회 가능
+    - ADMIN: 아무 주문이나 조회 가능
     """
     order = Order.query.get(order_id)
     if not order or order.deleted_at is not None:
-        return jsonify({"message": "주문을 찾을 수 없습니다."}), 404
+        raise ApiError(
+            status_code=404,
+            code=ErrorCodes.RESOURCE_NOT_FOUND,
+            message="주문을 찾을 수 없습니다.",
+        )
+
+    if g.current_user.role != "ADMIN" and order.user_id != g.current_user.id:
+        raise ApiError(
+            status_code=403,
+            code=ErrorCodes.FORBIDDEN,
+            message="본인의 주문만 조회할 수 있습니다.",
+        )
 
     items = []
     for item in order.items.order_by(OrderItem.id.asc()).all():
@@ -173,28 +269,42 @@ def get_order_detail(order_id):
 @jwt_required(role="ADMIN")
 def update_order_status(order_id):
     """
-    주문 상태 변경
+    주문 상태 변경 (ADMIN 전용)
     요청 바디 예시:
     { "status": "PAID" }
     """
     order = Order.query.get(order_id)
     if not order or order.deleted_at is not None:
-        return jsonify({"message": "주문을 찾을 수 없습니다."}), 404
+        raise ApiError(
+            status_code=404,
+            code=ErrorCodes.RESOURCE_NOT_FOUND,
+            message="주문을 찾을 수 없습니다.",
+        )
 
     data = request.get_json() or {}
     new_status = data.get("status")
 
     if not new_status:
-        return jsonify({"message": "status 필드는 필수입니다."}), 400
+        raise ApiError(
+            status_code=400,
+            code=ErrorCodes.VALIDATION_FAILED,
+            message="status 필드는 필수입니다.",
+        )
 
     if new_status not in ALLOWED_STATUSES:
-        return jsonify({
-            "message": "허용되지 않는 주문 상태입니다.",
-            "details": f"허용 상태: {sorted(ALLOWED_STATUSES)}"
-        }), 400
+        raise ApiError(
+            status_code=400,
+            code=ErrorCodes.UNPROCESSABLE_ENTITY,
+            message="허용되지 않는 주문 상태입니다.",
+            details={"allowed": sorted(ALLOWED_STATUSES)},
+        )
 
     if order.status == "CANCELLED":
-        return jsonify({"message": "취소된 주문은 상태를 변경할 수 없습니다."}), 409
+        raise ApiError(
+            status_code=409,
+            code=ErrorCodes.STATE_CONFLICT,
+            message="취소된 주문은 상태를 변경할 수 없습니다.",
+        )
 
     if new_status == "PAID" and order.paid_at is None:
         order.paid_at = datetime.utcnow()
@@ -204,7 +314,6 @@ def update_order_status(order_id):
 
     return jsonify({
         "id": order.id,
-        "from_status": order.status,
         "status": order.status,
         "updated_at": order.updated_at.isoformat(),
     }), 200
