@@ -168,27 +168,29 @@ def create_order():
 
 
 @bp.route("", methods=["GET"])
-@jwt_required()
+@jwt_required()   # 자신의 주문만 기본 조회 (관리자는 전체 조회 가능하게 확장 가능)
 def list_orders():
     """
     주문 목록 조회
     쿼리 파라미터:
-      - user_id (ADMIN일 때 다른 사용자 주문 조회용)
+      - user_id (관리자일 때 다른 사람 주문 조회 가능)
       - status
       - page, size
       - sort=created_at,DESC
     """
+    from ..pagination import apply_pagination_and_sort
+
     query = Order.query.filter(Order.deleted_at.is_(None))
 
+    # 기본: 본인 주문만
     user_id_param = request.args.get("user_id")
     if user_id_param:
-        # ADMIN이면 파라미터 기준, 일반 유저는 무시하고 자기 것만
+        # ADMIN이면 다른 사용자 주문도 조회 가능
         if g.current_user.role == "ADMIN":
             query = query.filter(Order.user_id == user_id_param)
         else:
             query = query.filter(Order.user_id == g.current_user.id)
     else:
-        # user_id가 없으면 자기 주문만
         query = query.filter(Order.user_id == g.current_user.id)
 
     status = request.args.get("status")
@@ -202,9 +204,9 @@ def list_orders():
         default_sort_dir="DESC",
     )
 
-    content = []
+    result = []
     for o in orders:
-        content.append({
+        result.append({
             "id": o.id,
             "user_id": o.user_id,
             "status": o.status,
@@ -214,7 +216,7 @@ def list_orders():
         })
 
     response = {
-        "content": content,
+        "content": result,
         **meta,
     }
     return jsonify(response), 200
