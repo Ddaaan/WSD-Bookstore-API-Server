@@ -6,3 +6,4 @@ from .book_category import BookCategory
 from .review import Review
 from .review_like import ReviewLike
 from .comment import Comment
+from .wishlist import Wishlist

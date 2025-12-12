@@ -30,3 +30,4 @@ class Book(db.Model):
         lazy="dynamic",
     )
     reviews = db.relationship("Review", back_populates="book", lazy="dynamic")
+    wishlists = db.relationship("Wishlist", back_populates="book", lazy="dynamic")
