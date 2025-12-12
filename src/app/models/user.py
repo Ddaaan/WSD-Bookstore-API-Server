@@ -27,3 +27,4 @@ class User(db.Model):
     review_likes = db.relationship("ReviewLike", back_populates="user", lazy="dynamic")
     wishlists = db.relationship("Wishlist", back_populates="user", lazy="dynamic")
     cart_items = db.relationship("Cart", back_populates="user", lazy="dynamic")
+    orders = db.relationship("Order", back_populates="user", lazy="dynamic")

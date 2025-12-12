@@ -32,3 +32,4 @@ class Book(db.Model):
     reviews = db.relationship("Review", back_populates="book", lazy="dynamic")
     wishlists = db.relationship("Wishlist", back_populates="book", lazy="dynamic")
     cart_items = db.relationship("Cart", back_populates="book", lazy="dynamic")
+    order_items = db.relationship("OrderItem", back_populates="book", lazy="dynamic")

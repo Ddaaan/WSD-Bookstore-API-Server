@@ -7,5 +7,6 @@ from .review import Review
 from .review_like import ReviewLike
 from .comment import Comment
 from .wishlist import Wishlist
-from .wishlist import Wishlist
 from .cart import Cart
+from .order import Order
+from .order_item import OrderItem
