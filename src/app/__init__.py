@@ -2,6 +2,7 @@ from flask import Flask
 from .config import get_config
 from .extensions import db
 from .routes.review_likes import bp as review_likes_bp
+from .routes.comments import bp as comments_bp
 
 def create_app(config_name="dev"):
     app = Flask(__name__)
@@ -35,3 +36,4 @@ def register_blueprints(app):
     app.register_blueprint(categories_bp, url_prefix="/categories")
     app.register_blueprint(reviews_bp, url_prefix="/reviews")
     app.register_blueprint(review_likes_bp, url_prefix="/reviews")
+    app.register_blueprint(comments_bp)
