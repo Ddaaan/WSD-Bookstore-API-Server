@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from ..extensions import db
 from ..models import User
+from ..auth_utils import jwt_required
 
 bp = Blueprint("users", __name__)
 
@@ -86,3 +87,17 @@ def delete_user(user_id):
     db.session.commit()
 
     return jsonify({"message": "삭제되었습니다."}), 200
+
+@bp.route("", methods=["GET"])
+@jwt_required(role="ADMIN")   # 관리자만 전체 사용자 목록 조회 가능
+def list_users():
+    users = User.query.all()
+    result = []
+    for u in users:
+        result.append({
+            "id": u.id,
+            "email": u.email,
+            "name": u.name,
+            "role": u.role
+        })
+    return jsonify(result), 200

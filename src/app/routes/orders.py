@@ -1,9 +1,11 @@
 from datetime import datetime
 from decimal import Decimal
 
+from flask import Blueprint, request, jsonify, g 
 from flask import Blueprint, request, jsonify
 from ..extensions import db
 from ..models import Order, OrderItem, User, Book, Cart
+from ..auth_utils import jwt_required
 
 bp = Blueprint("orders", __name__)
 
@@ -19,32 +21,23 @@ def decimal_to_str(value):
 
 
 @bp.route("", methods=["POST"])
+@jwt_required()   # 로그인한 사용자만 주문 생성 가능
 def create_order():
-    """
-    주문 생성
-    요청 예시:
-    {
-      "user_id": 1,
-      "items": [
-        {"book_id": 1, "quantity": 2},
-        {"book_id": 3, "quantity": 1}
-      ]
-    }
-    또는 items를 생략하고 "from_cart": true 로 장바구니 기반 생성하도록 확장 가능
-    """
     data = request.get_json() or {}
 
     user_id = data.get("user_id")
-    items = data.get("items", [])
 
     if not user_id:
         return jsonify({"message": "user_id 는 필수입니다."}), 400
+
+    if int(user_id) != g.current_user.id and g.current_user.role != "ADMIN":
+        return jsonify({"message": "본인 주문만 생성할 수 있습니다."}), 403
 
     user = User.query.get(user_id)
     if not user:
         return jsonify({"message": "사용자를 찾을 수 없습니다."}), 404
 
-    # items가 비어 있으면 에러
+    items = data.get("items", [])
     if not items:
         return jsonify({"message": "주문할 items 배열은 비어 있을 수 없습니다."}), 400
 
@@ -177,6 +170,7 @@ def get_order_detail(order_id):
 
 
 @bp.route("/<int:order_id>/status", methods=["PATCH"])
+@jwt_required(role="ADMIN")
 def update_order_status(order_id):
     """
     주문 상태 변경
