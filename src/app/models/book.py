@@ -12,9 +12,20 @@ class Book(db.Model):
     isbn13 = db.Column(db.String(13), nullable=True, unique=True, index=True)
     published_at = db.Column(db.Date, nullable=True)
     stock_cnt = db.Column(db.Integer, nullable=False, default=0)
-    status = db.Column(db.String(20), nullable=False, default="ACTIVE")  # ACTIVE / DISCONTINUED
+    status = db.Column(db.String(20), nullable=False, default="ACTIVE")
+
+    # FK: authors.id
+    author_id = db.Column(db.BigInteger, db.ForeignKey("authors.id"), nullable=True)
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    author = db.relationship("Author", back_populates="books")
+    categories = db.relationship(
+        "Category",
+        secondary="book_categories",
+        back_populates="books",
+        lazy="dynamic",
     )
