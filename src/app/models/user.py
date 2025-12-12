@@ -20,3 +20,8 @@ class User(db.Model):
     updated_at = db.Column(
         db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
+
+    # 관계
+    reviews = db.relationship("Review", back_populates="user", lazy="dynamic")
+    comments = db.relationship("Comment", back_populates="user", lazy="dynamic")
+    review_likes = db.relationship("ReviewLike", back_populates="user", lazy="dynamic")

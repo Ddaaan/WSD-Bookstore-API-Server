@@ -29,3 +29,4 @@ class Book(db.Model):
         back_populates="books",
         lazy="dynamic",
     )
+    reviews = db.relationship("Review", back_populates="book", lazy="dynamic")
