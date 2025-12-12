@@ -4,6 +4,7 @@ from .extensions import db
 from .routes.review_likes import bp as review_likes_bp
 from .routes.comments import bp as comments_bp
 from .routes.cart import bp as cart_bp
+from .error_handlers import register_error_handlers
 
 def create_app(config_name="dev"):
     app = Flask(__name__)
@@ -14,6 +15,7 @@ def create_app(config_name="dev"):
     db.init_app(app)
 
     register_blueprints(app)
+    register_error_handlers(app)
 
     # 개발 단계: 자동 테이블 생성
     with app.app_context():
