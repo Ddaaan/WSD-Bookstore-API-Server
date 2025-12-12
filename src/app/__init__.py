@@ -28,6 +28,9 @@ def register_blueprints(app):
     from .routes.authors import bp as authors_bp
     from .routes.categories import bp as categories_bp
     from .routes.reviews import bp as reviews_bp
+    from .routes.review_likes import bp as review_likes_bp
+    from .routes.comments import bp as comments_bp
+    from .routes.wishlists import bp as wishlists_bp
 
     app.register_blueprint(health_bp, url_prefix="/health")
     app.register_blueprint(users_bp, url_prefix="/users")
@@ -37,3 +40,4 @@ def register_blueprints(app):
     app.register_blueprint(reviews_bp, url_prefix="/reviews")
     app.register_blueprint(review_likes_bp, url_prefix="/reviews")
     app.register_blueprint(comments_bp)
+    app.register_blueprint(wishlists_bp, url_prefix="/wishlists")
