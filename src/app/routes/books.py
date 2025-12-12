@@ -1,7 +1,9 @@
 from flask import Blueprint, request, jsonify
 from ..extensions import db
-from ..models import Book
-
+from ..models import Book, Category
+from ..pagination import apply_pagination_and_sort
+from ..error_handlers import ApiError
+from ..error_codes import ErrorCodes
 bp = Blueprint("books", __name__)
 
 # 도서 등록
@@ -40,11 +42,69 @@ def create_book():
 # 도서 목록 조회
 @bp.route("", methods=["GET"])
 def list_books():
-    books = Book.query.all()
-    return jsonify([
-        {"id": b.id, "title": b.title, "author": b.author, "price": b.price, "stock": b.stock}
-        for b in books
-    ]), 200
+    """
+    도서 목록 조회
+    쿼리 파라미터 예시:
+      - page, size
+      - sort=created_at,DESC
+      - keyword=검색어 (title 또는 description에 포함)
+      - status=ACTIVE
+      - min_price, max_price
+    """
+    query = Book.query
+
+    keyword = request.args.get("keyword")
+    status = request.args.get("status")
+    min_price = request.args.get("min_price")
+    max_price = request.args.get("max_price")
+
+    if keyword:
+        like = f"%{keyword}%"
+        query = query.filter(
+            (Book.title.ilike(like)) | (Book.description.ilike(like))
+        )
+
+    if status:
+        query = query.filter(Book.status == status)
+
+    # 가격 필터
+    try:
+        if min_price is not None:
+            query = query.filter(Book.price >= float(min_price))
+        if max_price is not None:
+            query = query.filter(Book.price <= float(max_price))
+    except ValueError:
+        raise ApiError(
+            status_code=400,
+            code=ErrorCodes.INVALID_QUERY_PARAM,
+            message="min_price, max_price 는 숫자여야 합니다.",
+        )
+
+    books, meta = apply_pagination_and_sort(
+        query=query,
+        model=Book,
+        default_sort_field="created_at",
+        default_sort_dir="DESC",
+    )
+
+    content = []
+    for b in books:
+        content.append({
+            "id": b.id,
+            "title": b.title,
+            "description": b.description,
+            "price": str(b.price),
+            "status": b.status,
+            "stock_cnt": b.stock_cnt,
+            "created_at": b.created_at.isoformat(),
+        })
+
+    response = {
+        "content": content,
+        **meta,
+    }
+    return jsonify(response), 200
+
 
 
 # 특정 도서 조회
