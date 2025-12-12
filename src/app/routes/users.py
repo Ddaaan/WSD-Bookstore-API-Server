@@ -10,7 +10,7 @@ def create_user():
     data = request.get_json() or {}
 
     email = data.get("email")
-    password = data.get("password")  # 입력은 password
+    password = data.get("password")
     name = data.get("name")
 
     if not email or not password or not name:
@@ -22,8 +22,9 @@ def create_user():
     user = User(
         email=email,
         name=name,
-        password_hash=password,  # DB 컬럼은 password_hash
     )
+    user.set_password(password)  # bcrypt 해싱
+
     db.session.add(user)
     db.session.commit()
 
