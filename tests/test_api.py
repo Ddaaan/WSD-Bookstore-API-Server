@@ -1,11 +1,18 @@
 import os
+import sys
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
-from src.app import create_app
-from src.app.extensions import db
-from src.app.models import User, Category, Author, Book
+ROOT_DIR = Path(__file__).resolve().parents[1]
+SRC_DIR = ROOT_DIR / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.append(str(SRC_DIR))
+
+from src.app import create_app  # noqa: E402
+from src.app.extensions import db  # noqa: E402
+from src.app.models import User, Category, Author, Book  # noqa: E402
 
 
 def seed_data():
