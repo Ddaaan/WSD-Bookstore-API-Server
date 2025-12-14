@@ -6,9 +6,8 @@ from pathlib import Path
 import pytest
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
-SRC_DIR = ROOT_DIR / "src"
-if str(SRC_DIR) not in sys.path:
-    sys.path.append(str(SRC_DIR))
+if str(ROOT_DIR) not in sys.path:
+    sys.path.append(str(ROOT_DIR))
 
 from src.app import create_app  # noqa: E402
 from src.app.extensions import db  # noqa: E402
