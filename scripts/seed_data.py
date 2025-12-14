@@ -4,6 +4,8 @@ import random
 from decimal import Decimal
 from datetime import datetime, timedelta
 
+from werkzeug.security import generate_password_hash
+
 # 현재 파일 기준으로 프로젝트 루트 경로를 sys.path에 추가
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(CURRENT_DIR)
@@ -11,8 +13,8 @@ if PROJECT_ROOT not in sys.path:
     sys.path.append(PROJECT_ROOT)
 
 from src.app import create_app
-from src.extensions import db
-from src.models import (
+from src.app.extensions import db
+from src.app.models import (
     User,
     Author,
     Category,
@@ -21,7 +23,6 @@ from src.models import (
     OrderItem,
     Review,
 )
-from src.auth_utils import hash_password
 
 
 
@@ -44,10 +45,9 @@ def seed_users():
         email="admin@example.com",
         name="Admin",
         role="ADMIN",
-        password_hash=hash_password("Admin123!"),
+        password_hash=generate_password_hash("Admin123!"),
         is_active=True,
     )
-    users.append(admin)
 
     # 일반 사용자 9명
     for i in range(1, 10):
@@ -55,10 +55,11 @@ def seed_users():
             email=f"user{i}@example.com",
             name=f"User{i}",
             role="USER",
-            password_hash=hash_password(f"User{i}123!"),
+            password_hash=generate_password_hash(f"User{i}123!"),
             is_active=True,
         )
-        users.append(u)
+    users.append(u)
+
 
     db.session.add_all(users)
     db.session.commit()
