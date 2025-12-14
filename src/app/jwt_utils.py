@@ -20,7 +20,7 @@ def create_token(user_id: int, role: str, token_type: TokenType) -> str:
         )
 
     payload = {
-        "sub": user_id,
+        "sub": str(user_id),
         "role": role,
         "type": token_type,
         "iat": now,

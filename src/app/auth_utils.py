@@ -44,8 +44,17 @@ def jwt_required(role: str | None = None):
                     message="Invalid access token.",
                 )
 
-            user_id = payload.get("sub")
+            user_id_claim = payload.get("sub")
             user_role = payload.get("role")
+
+            try:
+                user_id = int(user_id_claim)
+            except (TypeError, ValueError):
+                raise ApiError(
+                    status_code=401,
+                    code=ErrorCodes.UNAUTHORIZED,
+                    message="Invalid access token.",
+                )
 
             user = User.query.get(user_id)
             if not user:
