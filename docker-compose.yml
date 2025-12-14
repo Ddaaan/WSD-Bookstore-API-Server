@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: wsd-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: bookstore
+      MYSQL_USER: bookstore
+      MYSQL_PASSWORD: bookstore
+      TZ: Asia/Seoul
+    ports:
+      - "3307:3306"
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wsd-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      FLASK_ENV: prod
+      SQLALCHEMY_DATABASE_URI: mysql+pymysql://bookstore:bookstore@db:3306/bookstore?charset=utf8mb4
+      JWT_SECRET: ${JWT_SECRET:-docker-secret}
+      JWT_ACCESS_EXPIRES_MIN: ${JWT_ACCESS_EXPIRES_MIN:-30}
+      JWT_REFRESH_EXPIRES_DAYS: ${JWT_REFRESH_EXPIRES_DAYS:-7}
+      RATE_LIMIT_REQUESTS: ${RATE_LIMIT_REQUESTS:-200}
+      RATE_LIMIT_WINDOW_SECONDS: ${RATE_LIMIT_WINDOW_SECONDS:-60}
+    ports:
+      - "8080:8080"
+    command: ["python", "run.py"]
+
+volumes:
+  mysql-data:
