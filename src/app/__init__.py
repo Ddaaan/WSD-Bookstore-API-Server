@@ -5,8 +5,10 @@ from .routes.review_likes import bp as review_likes_bp
 from .routes.comments import bp as comments_bp
 from .routes.cart import bp as cart_bp
 from .error_handlers import register_error_handlers
+from dotenv import load_dotenv
 
 def create_app(config_name="dev"):
+    load_dotenv()
     app = Flask(__name__)
 
     config_class = get_config(config_name)

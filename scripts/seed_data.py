@@ -239,8 +239,7 @@ def seed_orders_and_reviews(users, books):
 
 
 def main():
-    # prod 설정을 사용 (DATABASE_URL에 맞게 접속)
-    app = create_app("prod")
+    app = create_app("dev")
 
     with app.app_context():
         clear_and_create_tables()
