@@ -25,12 +25,12 @@ pip install -r requirements.txt
 # 2) 환경파일
 cp .env.example .env               # 실제 값으로 업데이트 (.env는 git에 올리지 않음)
 
-# 3) DB 준비
-flask --app run db upgrade         # 또는 alembic upgrade head
-python scripts/seed_data.py        # 200건 이상 샘플 데이터 삽입
+# 3) DB ??
+python scripts/seed_data.py        # 200? ?? ?? ??? ??
 
-# 4) 서버 실행
-flask --app run run --host 0.0.0.0 --port 5000
+# 4) ?? ??
+python run.py
+# ??: flask --app run.py run --host 0.0.0.0 --port 8080
 ```
 
 ### Docker Compose (옵션)
@@ -114,8 +114,8 @@ docker-compose down
 | `GET /orders` | 본인 주문 (관리자는 user_id 쿼리로 전체 조회) |
 | `PATCH /orders/{id}/status` (ADMIN) | 주문 상태 변경 |
 | `POST /reviews` | 리뷰 작성 |
-| `POST /review-likes/{id}` | 리뷰 좋아요 |
-| `POST /cart/items` | 장바구니 담기 |
+| `POST /reviews/{id}/like` | 리뷰 좋아요 |
+| `POST /cart` | 장바구니 담기 |
 | `POST /wishlists` | 위시리스트 등록 |
 
 총 30개 이상 엔드포인트가 README + Swagger + Postman에 모두 반영되어 있습니다.
