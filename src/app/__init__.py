@@ -1,11 +1,13 @@
-from flask import Flask
+from time import perf_counter
+
+from flask import Flask, g, request
+from dotenv import load_dotenv
+
 from .config import get_config
 from .extensions import db
-from .routes.review_likes import bp as review_likes_bp
-from .routes.comments import bp as comments_bp
-from .routes.cart import bp as cart_bp
 from .error_handlers import register_error_handlers
-from dotenv import load_dotenv
+from .swagger import register_swagger
+
 
 def create_app(config_name="dev"):
     load_dotenv()
@@ -18,13 +20,39 @@ def create_app(config_name="dev"):
 
     register_blueprints(app)
     register_error_handlers(app)
+    register_swagger(app)
+    register_request_logging(app)
 
     # 개발 단계: 자동 테이블 생성
     with app.app_context():
         from .models import User, Book
+
         db.create_all()
 
     return app
+
+
+def register_request_logging(app):
+    @app.before_request
+    def _start_timer():
+        g._request_started_at = perf_counter()
+
+    @app.after_request
+    def _log_response(response):
+        start_time = getattr(g, "_request_started_at", None)
+        duration_ms = 0.0
+        if start_time is not None:
+            duration_ms = (perf_counter() - start_time) * 1000
+
+        app.logger.info(
+            "%s %s -> %s (%.2f ms)",
+            request.method,
+            request.path,
+            response.status_code,
+            duration_ms,
+        )
+        return response
+
 
 def register_blueprints(app):
     from .routes.health import bp as health_bp
@@ -52,4 +80,3 @@ def register_blueprints(app):
     app.register_blueprint(cart_bp, url_prefix="/cart")
     app.register_blueprint(orders_bp, url_prefix="/orders")
     app.register_blueprint(auth_bp, url_prefix="/auth")
-
