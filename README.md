@@ -1,7 +1,5 @@
 # WSD Bookstore API
 
-Assignment 2 implementation of a production-style REST API for an online bookstore. The service exposes 30+ endpoints across auth, users, books, authors, categories, reviews, carts, wishlists, and orders. It satisfies the rubric requirements (JWT/RBAC, pagination/search/sort, error spec, Swagger docs, Postman collection, seeds, and automated tests hooks).
-
 ## 1. 프로젝트 개요
 - **문제 정의**: 다중 역할(사용자/관리자)을 가진 북스토어 서비스를 설계하고, 주문·리뷰·위시리스트 등을 포함한 도메인 CRUD를 구현
 - **주요 기능**:
@@ -25,10 +23,10 @@ pip install -r requirements.txt
 # 2) 환경파일
 cp .env.example .env               # 실제 값으로 업데이트 (.env는 git에 올리지 않음)
 
-# 3) DB ??
-python scripts/seed_data.py        # 200? ?? ?? ??? ??
+# 3) DB seed 생성
+python scripts/seed_data.py
 
-# 4) ?? ??
+# 4) 로컬 실행
 python run.py
 # ??: flask --app run.py run --host 0.0.0.0 --port 8080
 ```
@@ -41,9 +39,7 @@ export JWT_SECRET=super-secret
 # 2) 앱+MySQL 일괄 기동
 docker-compose up --build
 
-# 3) 로그 확인 후 http://localhost:8080 /docs 접속
-
-# 4) 중지
+# 3) 중지
 docker-compose down
 ```
 
@@ -63,8 +59,9 @@ docker-compose down
 | --- | --- |
 | Base API | `http://113.198.66.68:10169/` |
 | Swagger UI | `http://113.198.66.68:10169/docs` |
-| Swagger JSON | `http://113.198.66.68:10169//swagger.json` |
-| Health Check | `http://113.198.66.68:10169//health` |
+| Swagger JSON | `http://113.198.66.68:10169/swagger.json` |
+| Health Check | `http://113.198.66.68:10169/health` |
+| postman collection | `http://113.198.66.68:10169/bookstore.postman_collection.json` |
 
 ## 5. 인증 플로우 & 역할
 1. `POST /auth/login` → `{access_token, refresh_token}`
