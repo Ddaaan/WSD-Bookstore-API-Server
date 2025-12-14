@@ -1,6 +1,14 @@
+import os
+import sys
 import random
 from decimal import Decimal
 from datetime import datetime, timedelta
+
+# 현재 파일 기준으로 프로젝트 루트 경로를 sys.path에 추가
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(CURRENT_DIR)
+if PROJECT_ROOT not in sys.path:
+    sys.path.append(PROJECT_ROOT)
 
 from src.app import create_app
 from src.extensions import db
@@ -14,6 +22,7 @@ from src.models import (
     Review,
 )
 from src.auth_utils import hash_password
+
 
 
 def clear_and_create_tables():
