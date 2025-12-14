@@ -54,7 +54,26 @@ docker-compose down
 | `RATE_LIMIT_REQUESTS` | 요청 허용 횟수(기본 200) |
 | `RATE_LIMIT_WINDOW_SECONDS` | 레이트리밋 윈도우 길이(기본 60초) |
 
-## 4. 배포 주소
+## 4. JCloud/systemd 배포
+재부팅 후에도 서비스가 자동 기동되도록 systemd 서비스를 등록합니다.
+
+1. 서버상 서비스 파일 배치 (경로/파이썬 인터프리터는 서버 환경에 맞게 조정):
+   ```bash
+   sudo cp deploy/bookstore.service.example /etc/systemd/system/bookstore.service
+   ```
+2. 서비스 등록 및 즉시 실행:
+   ```bash
+   sudo systemctl daemon-reload && sudo systemctl enable --now bookstore
+   sudo systemctl status bookstore --no-pager
+   ```
+3. 로그 확인:
+   ```bash
+   sudo journalctl -u bookstore -f
+   ```
+
+> 서버에 배포하기 전에 `pip install -r requirements.txt`, `.env` 배치, `python scripts/seed_data.py`를 실행한 뒤 위 단계를 수행하세요. 성공 시 0.0.0.0:8080에서 Flask 앱이 기동하며 재부팅 후에도 자동으로 실행됩니다.
+
+## 5. 배포 주소
 | 항목 | URL |
 | --- | --- |
 | Base API | `http://113.198.66.68:10169/` |
@@ -63,7 +82,7 @@ docker-compose down
 | Health Check | `http://113.198.66.68:10169/health` |
 | postman collection | `http://113.198.66.68:10169/bookstore.postman_collection.json` |
 
-## 5. 인증 플로우 & 역할
+## 6. 인증 플로우 & 역할
 1. `POST /auth/login` → `{access_token, refresh_token}`
 2. 모든 보호 엔드포인트는 `Authorization: Bearer <access_token>` 필수
 3. 만료 시 `POST /auth/refresh`로 새 토큰 쌍 획득
@@ -84,19 +103,21 @@ docker-compose down
 
 > 실제 과제 제출 시 `.env` 및 별도 문서에 DB/계정 접속 정보를 기재하고 GitHub에는 절대 업로드하지 않습니다.
 
-## 6. DB 연결 정보 (예시)
-| 항목 | 값 |
-| --- | --- |
-| Host | `localhost` |
-| Port | `3306` |
-| Schema | `bookstore` |
-| User | `bookstore` |
-| Password | `1234` |
-| CLI | `mysql -u bookstore -p1234 -h localhost bookstore` |
+## 7. DB 연결 정보 (테스트용)
+- **DBMS**: MySQL 8.0
+- **Host**: localhost
+- **Port**: 3306
+- **Database**: bookstore
+- **User**: bookstore
+- **Password**: (Classroom 제출 `.env` 참고)
 
-실제 제출 시 사용 중인 DB 인스턴스/계정 정보를 별도 텍스트 파일로 제공하세요.
+### 권한 범위
+- 해당 계정은 `bookstore` DB에 대해서만 접근 가능
+- SELECT / INSERT / UPDATE / DELETE 권한만 부여
+- DB 생성·삭제, 사용자 관리 등의 권한 없음
+- 애플리케이션 전용 최소 권한 계정
 
-## 7. 엔드포인트 요약 (발췌)
+## 8. 엔드포인트 요약
 | Method & Path | 설명 |
 | --- | --- |
 | `GET /health` | 헬스 체크 (버전/uptime 포함) |
@@ -118,7 +139,7 @@ docker-compose down
 
 총 30개 이상 엔드포인트가 README + Swagger + Postman에 모두 반영되어 있습니다.
 
-## 8. 문서 & 테스트 산출물
+## 9. 문서 & 테스트 산출물
 - **Swagger/OpenAPI**: `docs/swagger.json`, 자동 UI(`/docs`) 제공. 각 엔드포인트는 400/401/403/404/422/500 예시 응답을 명시.
 - **Postman 컬렉션**: `postman/bookstore.postman_collection.json`
   - 환경 변수: `base_url`, `admin_email`, `admin_password`, `access_token`, `refresh_token`
@@ -128,7 +149,7 @@ docker-compose down
 - **아키텍처 노트**: `docs/architecture.md`
 - **자동화 테스트**: `pytest` 기반의 20개 이상 통합/단위 테스트(`tests/test_api.py`)가 포함되어 있으며 `pytest -q`로 실행할 수 있습니다.
 
-## 9. 성능/보안 고려 사항
+## 10. 성능/보안 고려 사항
 - JWT 서명 키 및 DB 비밀번호는 `.env`만 사용 (git 제외)
 - 비밀번호는 `werkzeug.security.generate_password_hash` 기반 해시 저장
 - 전역 요청/응답 로그(메서드, 경로, 상태코드, 지연시간) + 예상치 못한 예외 시 스택트레이스 로그 남김
@@ -136,7 +157,7 @@ docker-compose down
 - 검색 대상 칼럼 인덱스(`books.title`, `users.email`, FK 등) 설계
 - 향후 확장을 위해 Rate-limit/CORS 설정 훅을 `create_app`에 배치
 
-## 10. 한계와 개선 계획
+## 11. 한계와 개선 계획
 1. Swagger 사양은 핵심 엔드포인트를 다루도록 구성했으며, 향후 모든 세부 엔드포인트를 1:1 반영하도록 자동화(apispec + decorators) 예정
 2. 배포 시에는 Gunicorn + systemd/PM2로 프로세스 매니징 필요
 3. Rate limit, CORS, JWT 블록리스트는 최소 구현 상태 → Redis 기반으로 확장 가능
