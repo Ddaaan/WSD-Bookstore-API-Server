@@ -12,26 +12,27 @@
   - Health check, rate-limit hook 자리, 로컬/배포 환경 분리
 
 ## 2. 실행 방법
+### 로컬 환경 (Python 3.11)
 ```bash
-# 0) Python 3.11 가상환경 생성
+# 0) 가상환경 생성
 python -m venv venv
 source venv/bin/activate          # Windows: venv\Scripts\activate
 
 # 1) 의존성 설치
+pip install --upgrade pip
 pip install -r requirements.txt
 
-# 2) 환경파일
-cp .env.example .env               # 실제 값으로 업데이트 (.env는 git에 올리지 않음)
+# 2) 환경변수 파일 준비
+cp .env.example .env              # .env에 DB/JWT 값을 채우고 git에는 올리지 않습니다.
 
-# 3) DB seed 생성
+# 3) 시드 데이터 주입
 python scripts/seed_data.py
 
-# 4) 로컬 실행
+# 4) API 서버 실행
 python run.py
-# ??: flask --app run.py run --host 0.0.0.0 --port 8080
+# 또는: flask --app run.py run --host 0.0.0.0 --port 8080
 ```
-
-### Docker Compose (옵션)
+### Docker Compose
 ```bash
 # 1) 기본 env (필요 시 JWT_SECRET 등 export)
 export JWT_SECRET=super-secret
