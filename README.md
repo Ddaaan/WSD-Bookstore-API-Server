@@ -58,13 +58,13 @@ docker-compose down
 | `RATE_LIMIT_REQUESTS` | 요청 허용 횟수(기본 200) |
 | `RATE_LIMIT_WINDOW_SECONDS` | 레이트리밋 윈도우 길이(기본 60초) |
 
-## 4. 배포 주소 (제출 시 업데이트)
+## 4. 배포 주소
 | 항목 | URL |
 | --- | --- |
-| Base API | `http://<jcloud-host>:<port>` |
-| Swagger UI | `http://<jcloud-host>:<port>/docs` |
-| Swagger JSON | `http://<jcloud-host>:<port>/swagger.json` |
-| Health Check | `http://<jcloud-host>:<port>/health` |
+| Base API | `http://113.198.66.68:10169/` |
+| Swagger UI | `http://113.198.66.68:10169/docs` |
+| Swagger JSON | `http://113.198.66.68:10169//swagger.json` |
+| Health Check | `http://113.198.66.68:10169//health` |
 
 ## 5. 인증 플로우 & 역할
 1. `POST /auth/login` → `{access_token, refresh_token}`
