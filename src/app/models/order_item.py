@@ -5,7 +5,7 @@ from ..extensions import db
 class OrderItem(db.Model):
     __tablename__ = "order_items"
 
-    id = db.Column(db.BigInteger, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     order_id = db.Column(db.BigInteger, db.ForeignKey("orders.id"), nullable=False, index=True)
     book_id = db.Column(db.BigInteger, db.ForeignKey("books.id"), nullable=False, index=True)
 

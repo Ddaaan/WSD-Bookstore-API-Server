@@ -5,7 +5,7 @@ from ..extensions import db
 class Comment(db.Model):
     __tablename__ = "comments"
 
-    id = db.Column(db.BigInteger, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     review_id = db.Column(db.BigInteger, db.ForeignKey("reviews.id"), nullable=False, index=True)
     user_id = db.Column(db.BigInteger, db.ForeignKey("users.id"), nullable=False, index=True)
     parent_id = db.Column(db.BigInteger, db.ForeignKey("comments.id"), nullable=True, index=True)

@@ -5,7 +5,7 @@ from ..extensions import db
 class Review(db.Model):
     __tablename__ = "reviews"
 
-    id = db.Column(db.BigInteger, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     book_id = db.Column(db.BigInteger, db.ForeignKey("books.id"), nullable=False, index=True)
     user_id = db.Column(db.BigInteger, db.ForeignKey("users.id"), nullable=False, index=True)
 

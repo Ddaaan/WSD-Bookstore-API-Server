@@ -5,7 +5,7 @@ from ..extensions import db
 class Book(db.Model):
     __tablename__ = "books"
 
-    id = db.Column(db.BigInteger, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     title = db.Column(db.String(255), nullable=False, index=True)
     description = db.Column(db.Text, nullable=True)
     price = db.Column(db.Numeric(12, 2), nullable=False)

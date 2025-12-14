@@ -5,7 +5,7 @@ from ..extensions import db
 class Order(db.Model):
     __tablename__ = "orders"
 
-    id = db.Column(db.BigInteger, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     user_id = db.Column(db.BigInteger, db.ForeignKey("users.id"), nullable=False, index=True)
 
     # PENDING, PAID, CANCELLED, SHIPPED, COMPLETED

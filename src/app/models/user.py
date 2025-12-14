@@ -6,7 +6,7 @@ import bcrypt  # 🔹 추가
 class User(db.Model):
     __tablename__ = "users"
 
-    id = db.Column(db.BigInteger, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
     name = db.Column(db.String(100), nullable=False)
     birth_date = db.Column(db.Date, nullable=True)
