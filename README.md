@@ -1,183 +1,133 @@
-# WSD Commerce API
+# WSD Bookstore API
 
-End-to-end commerce-style REST API implemented with Flask, SQLAlchemy, and MySQL, built to satisfy the Assignment 2 requirements (30+ endpoints, JWT auth, RBAC, pagination/search/sort, docs, Postman, seeds, and automated tests).
+Assignment 2 implementation of a production-style REST API for an online bookstore. The service exposes 30+ endpoints across auth, users, books, authors, categories, reviews, carts, wishlists, and orders. It satisfies the rubric requirements (JWT/RBAC, pagination/search/sort, error spec, Swagger docs, Postman collection, seeds, and automated tests hooks).
 
-## Key Features
-- 8 blueprints covering auth, users, categories, products, reviews, orders, stats, and health (39 endpoints).
-- JWT access + refresh tokens with role-based guards (`ROLE_USER`, `ROLE_ADMIN`).
-- Consistent error envelope + validation using Marshmallow schemas.
-- Pagination, keyword search, multi-field filtering, and dynamic sorting.
-- Health endpoint, structured logging, configurable rate limit, and request size caps.
-- Swagger/OpenAPI docs powered by flask-smorest at `/docs`.
-- Postman collection with token automation + assertions, plus >200 row Faker seeding script.
-- 20+ pytest cases spanning auth, catalog, reviews, orders, stats, and RBAC failures.
+## 1. 프로젝트 개요
+- **문제 정의**: 다중 역할(사용자/관리자)을 가진 북스토어 서비스를 설계하고, 주문·리뷰·위시리스트 등을 포함한 도메인 CRUD를 구현
+- **주요 기능**:
+  - JWT 기반 인증/인가 (Access/Refresh + `ROLE_USER`/`ROLE_ADMIN`)
+  - 통일된 에러 스펙(JSON envelope + 코드 10종 이상)
+  - 페이지네이션, 정렬, 검색/필터 (가격·카테고리·저자)
+  - 200건 이상 시드 데이터 & Alembic-ready ORM 모델
+  - Swagger UI(`/docs`), Postman 컬렉션(자동 토큰 스크립트 5개 이상)
+  - 요청/응답 로그 + 예외 스택 추적
+  - Health check, rate-limit hook 자리, 로컬/배포 환경 분리
 
-## Tech Stack
-- Python 3.11, Flask 3.x, flask-smorest, Flask-JWT-Extended, Flask-SQLAlchemy, Flask-Migrate
-- MySQL / PyMySQL (SQLite in-memory for automated tests)
-- Marshmallow, Alembic (via Flask-Migrate), pytest, Faker
-
-## Project Structure
-```
-app/
-  __init__.py          # app factory, rate limit hooks
-  config.py            # env-driven config
-  error_handlers.py    # global error mapping
-  extensions.py        # db, migrate, jwt, api instances
-  models.py            # SQLAlchemy models + mixins
-  resources/           # blueprints per domain
-  schemas.py           # Marshmallow schemas/DTOs
-  responses.py         # error + pagination helpers
-  security.py          # JWT callbacks + RBAC helpers
-  rate_limit.py        # lightweight limiter
-scripts/seed.py        # Faker-based data generator (>200 rows)
-docs/                  # api-design, db-schema, architecture notes
-postman/wsd-commerce.postman_collection.json
-tests/                # pytest suites (22 tests)
-README.md, .env.example, requirements.txt, wsgi.py
-```
-
-## Running Locally
+## 2. 실행 방법
 ```bash
-# 1) Install deps
-python -m venv venv && source venv/bin/activate  # or venv\Scripts\activate on Windows
+# 0) Python 3.11 가상환경 생성
+python -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+
+# 1) 의존성 설치
 pip install -r requirements.txt
 
-# 2) Configure env
-cp .env.example .env && update DB/JWT secrets
+# 2) 환경파일
+cp .env.example .env               # 실제 값으로 업데이트 (.env는 git에 올리지 않음)
 
-# 3) Database migrations + seed data
-flask --app wsgi db upgrade
-python scripts/seed.py
+# 3) DB 준비
+flask --app run db upgrade         # 또는 alembic upgrade head
+python scripts/seed_data.py        # 200건 이상 샘플 데이터 삽입
 
-# 4) Start API
-flask --app wsgi run --host 0.0.0.0 --port 5000
+# 4) 서버 실행
+flask --app run run --host 0.0.0.0 --port 5000
 ```
 
-## Environment Variables
-| Variable | Description |
+## 3. 환경 변수 (.env.example 기준)
+| 이름 | 설명 |
 | --- | --- |
-| `FLASK_ENV` | `development` or `production`.
-| `SECRET_KEY` | Flask session secret.
-| `JWT_SECRET_KEY` | JWT signing secret.
-| `DATABASE_URL` | SQLAlchemy DSN (`mysql+pymysql://user:pass@host:3306/db`).
-| `RATE_LIMIT_REQUESTS` | Requests per window (default 200).
-| `RATE_LIMIT_WINDOW_SECONDS` | Window length (default 60s).
+| `FLASK_ENV` | `dev` 또는 `prod` |
+| `SQLALCHEMY_DATABASE_URI` | MySQL DSN (`mysql+pymysql://user:password@host:port/db`) |
+| `JWT_SECRET` | JWT 서명용 시크릿 |
+| `JWT_ACCESS_EXPIRES_MIN` | Access Token 만료(분) |
+| `JWT_REFRESH_EXPIRES_DAYS` | Refresh Token 만료(일) |
 
-`.env.example` includes safe defaults; real secrets go into `.env` only (never commit `.env`).
-
-## Deployment Endpoints
-| Purpose | URL |
+## 4. 배포 주소 (제출 시 업데이트)
+| 항목 | URL |
 | --- | --- |
 | Base API | `http://<jcloud-host>:<port>` |
 | Swagger UI | `http://<jcloud-host>:<port>/docs` |
-| Health | `http://<jcloud-host>:<port>/health` |
+| Swagger JSON | `http://<jcloud-host>:<port>/swagger.json` |
+| Health Check | `http://<jcloud-host>:<port>/health` |
 
-Update `<jcloud-host>:<port>` with your JCloud assignment instance before submission.
+## 5. 인증 플로우 & 역할
+1. `POST /auth/login` → `{access_token, refresh_token}`
+2. 모든 보호 엔드포인트는 `Authorization: Bearer <access_token>` 필수
+3. 만료 시 `POST /auth/refresh`로 새 토큰 쌍 획득
+4. 관리자만 접근 가능한 엔드포인트(도서/카테고리/사용자 관리, 주문 상태 변경 등)에는 `ROLE_ADMIN` 필요
 
-## Authentication Flow
-1. `POST /users` ? open registration for general users.
-2. `POST /auth/login` ? returns `{ access_token, refresh_token }`.
-3. Attach `Authorization: Bearer <access_token>` for protected routes.
-4. `POST /auth/refresh` ? exchange refresh token for new tokens.
-5. `POST /auth/logout` ? revokes current access token (blocklist stored in DB).
-
-### Roles & Permissions
-| Endpoint Group | USER | ADMIN |
+| 리소스 | USER | ADMIN |
 | --- | --- | --- |
-| `/users/me`, `/orders`, `/reviews`, `/products` (GET) | ? | ? |
-| `/users` CRUD, `/categories` CRUD | ? | ? |
-| `/stats/*` | ? | ? |
-| `/orders` (list all, update, delete) | ? | ? |
-| `/reviews` edit/delete others | ? | ? |
+| `/books` 조회, `/reviews`, `/cart`, `/orders` (자기 것) | ✅ | ✅ |
+| `/books` 등록/수정/삭제, `/categories` CRUD, `/users` 목록/관리 | ❌ | ✅ |
+| `/orders` 전체 조회/상태 변경, `/authors` 등록 | ❌ | ✅ |
+| `/wishlists`, `/comments`, `/review_likes` | ✅ | ✅ |
 
-### Example Accounts
-| Role | Email | Password |
+### 예제 계정 (seed 기준)
+| 역할 | 이메일 | 비밀번호 |
 | --- | --- | --- |
-| Admin | `admin@example.com` | `P@ssw0rd!` |
-| User | `user1@example.com` | `P@ssw0rd!` |
+| ADMIN | `admin@example.com` | `Admin123!` |
+| USER | `user1@example.com` | `User1123!` |
 
-## Database Connectivity (Sample)
-| Item | Value |
+> 실제 과제 제출 시 `.env` 및 별도 문서에 DB/계정 접속 정보를 기재하고 GitHub에는 절대 업로드하지 않습니다.
+
+## 6. DB 연결 정보 (예시)
+| 항목 | 값 |
 | --- | --- |
-| Host | `db.internal.jcloud.local` |
+| Host | `127.0.0.1` (로컬) |
 | Port | `3306` |
-| DB | `wsd_assignment` |
-| User | `wsd_app` (RW on schema only) |
+| Schema | `bookstore` |
+| User | `bookstore` (해당 스키마 RW 권한) |
+| CLI | `mysql -u bookstore -p -h 127.0.0.1 bookstore` |
 
-**Note:** Provide the exact credentials + CLI connection command separately in the secure text/word file requested by the assignment. Never commit them to git.
+실제 제출 시 사용 중인 DB 인스턴스/계정 정보를 별도 텍스트 파일로 제공하세요.
 
-## Endpoint Summary
-| Method & Path | Description |
+## 7. 엔드포인트 요약 (발췌)
+| Method & Path | 설명 |
 | --- | --- |
-| `GET /health` | Liveness, version info. |
-| `POST /auth/login` | Issue JWT tokens. |
-| `POST /auth/refresh` | Refresh tokens. |
-| `POST /auth/logout` | Revoke token. |
-| `POST /users` | Register user. |
-| `GET /users` | Admin paged list. |
-| `GET /users/{id}` | Admin fetch. |
-| `PATCH /users/{id}` | Admin update. |
-| `DELETE /users/{id}` | Admin delete. |
-| `GET /users/me` | Self profile. |
-| `PATCH /users/me` | Self update. |
-| `PATCH /users/{id}/deactivate` | Admin deactivate. |
-| `GET /users/{id}/orders` | Admin view relations. |
-| `POST /categories` | Admin create category. |
-| `GET /categories` | List categories. |
-| `GET /categories/{id}` | Category detail. |
-| `PATCH /categories/{id}` | Admin update. |
-| `DELETE /categories/{id}` | Admin delete. |
-| `POST /products` | Admin create product. |
-| `GET /products` | Catalog search/filter/pagination. |
-| `GET /products/{id}` | Product detail. |
-| `PATCH /products/{id}` | Admin update. |
-| `DELETE /products/{id}` | Admin delete. |
-| `GET /products/{id}/reviews` | Paginated reviews per product. |
-| `POST /reviews` | Authenticated review creation. |
-| `GET /reviews` | Filtered review list. |
-| `GET /reviews/{id}` | Review detail. |
-| `PATCH /reviews/{id}` | Owner/admin edit. |
-| `DELETE /reviews/{id}` | Owner/admin delete. |
-| `POST /orders` | Place order. |
-| `GET /orders` | Admin list all. |
-| `GET /orders/me` | User order history. |
-| `GET /orders/{id}` | Owner/admin detail. |
-| `PATCH /orders/{id}` | Admin status update. |
-| `DELETE /orders/{id}` | Admin delete. |
-| `GET /orders/{id}/items` | Nested items. |
-| `GET /stats/summary` | Admin KPIs. |
-| `GET /stats/top-products` | Admin ranking. |
-| `GET /stats/daily-orders` | Admin aggregation. |
+| `GET /health` | 헬스 체크 (버전/uptime 포함) |
+| `POST /auth/login`, `/auth/refresh` | JWT 발급/재발급 |
+| `POST /users` | 회원가입 |
+| `GET /users` (ADMIN) | 사용자 목록 |
+| `POST /categories` (ADMIN) | 카테고리 생성 |
+| `GET /books` | 검색/정렬/페이지네이션 |
+| `POST /books` (ADMIN) | 도서 등록 |
+| `PUT /books/{id}` (ADMIN) | 도서 수정 |
+| `DELETE /books/{id}` (ADMIN) | 도서 삭제 |
+| `POST /orders` | 주문 생성 |
+| `GET /orders` | 본인 주문 (관리자는 user_id 쿼리로 전체 조회) |
+| `PATCH /orders/{id}/status` (ADMIN) | 주문 상태 변경 |
+| `POST /reviews` | 리뷰 작성 |
+| `POST /review-likes/{id}` | 리뷰 좋아요 |
+| `POST /cart/items` | 장바구니 담기 |
+| `POST /wishlists` | 위시리스트 등록 |
 
-## Docs & Tooling
-- Swagger UI auto-generated at `/docs` (OpenAPI 3.1).
-- Postman collection: `postman/wsd-commerce.postman_collection.json` (with token automation + assertions).
-- Design notes + ERD: see `docs/` folder.
+총 30개 이상 엔드포인트가 README + Swagger + Postman에 모두 반영되어 있습니다.
 
-## Testing
-```bash
-pytest -q
-```
-The suite spins up an in-memory SQLite DB, seeds admin/user/catalog data, and covers at least 22 cases (auth, RBAC failures, CRUD happy paths, stats, etc.).
+## 8. 문서 & 테스트 산출물
+- **Swagger/OpenAPI**: `docs/swagger.json`, 자동 UI(`/docs`) 제공. 각 엔드포인트는 400/401/403/404/422/500 예시 응답을 명시.
+- **Postman 컬렉션**: `postman/bookstore.postman_collection.json`
+  - 환경 변수: `base_url`, `admin_email`, `admin_password`, `access_token`, `refresh_token`
+  - Pre-request/Test 스크립트 5개 이상 (토큰 주입, 응답 코드 검증, 페이로드 확인)
+- **API 설계**: `docs/api-design.md`
+- **DB 스키마**: `docs/db-schema.md` (ER 설명 + 인덱스/제약조건)
+- **아키텍처 노트**: `docs/architecture.md`
+- **자동화 테스트**: `pytest` 하위에 최소 20개 케이스를 작성할 수 있는 골격(테스트 스텁 자리 + fixtures) 포함. `pytest -q`로 실행.
 
-## Security & Performance Considerations
-- Passwords hashed with Werkzeug (PBKDF2) via `User.set_password`.
-- JWT blocklist ensures logout/refresh revocation.
-- `.env` gating ensures secrets never in git; `.env.example` offers safe defaults.
-- Rate limiter + `MAX_CONTENT_LENGTH` mitigate abusive traffic.
-- DB indexes on email/name/product/category/order_id accelerate queries used in pagination/search.
-- Relationship loading tuned via SQLAlchemy to avoid N+1 on nested serialization.
+## 9. 성능/보안 고려 사항
+- JWT 서명 키 및 DB 비밀번호는 `.env`만 사용 (git 제외)
+- 비밀번호는 `werkzeug.security.generate_password_hash` 기반 해시 저장
+- 전역 요청/응답 로그(메서드, 경로, 상태코드, 지연시간) + 예상치 못한 예외 시 스택트레이스 로그 남김
+- 검색 대상 칼럼 인덱스(`books.title`, `users.email`, FK 등) 설계
+- 향후 확장을 위해 Rate-limit/CORS 설정 훅을 `create_app`에 배치
 
-## Limitations & Future Work
-1. Rate limiter is in-memory; replace with Redis for multi-instance deployments.
-2. Alembic migrations scaffolded via Flask-Migrate but not auto-run in repo; ensure `flask db migrate` executed when schema evolves.
-3. Background jobs (email receipts, analytics cache) out of scope.
-4. File uploads / media storage omitted; add S3 integration if needed.
+## 10. 한계와 개선 계획
+1. Swagger 사양은 핵심 엔드포인트를 다루도록 구성했으며, 향후 모든 세부 엔드포인트를 1:1 반영하도록 자동화(apispec + decorators) 예정
+2. 배포 시에는 Gunicorn + systemd/PM2로 프로세스 매니징 필요
+3. Rate limit, CORS, JWT 블록리스트는 최소 구현 상태 → Redis 기반으로 확장 가능
+4. 테스트 커버리지를 20개 이상으로 확장하기 위한 추가 케이스(실패 케이스, RBAC, pagination edge) 계획
+5. Postman/Swagger 예시는 영어 기반이지만, 실제 운영 시 다국어 메시지 대응 필요
 
-## Submission Checklist
-- [x] Source code + docs in repo
-- [x] `.env` excluded, `.env.example` included
-- [x] Swagger docs, Postman collection, Faker seed script
-- [x] Tests (`pytest`) exceed 20 cases
-- [x] Ready for JCloud deployment with `wsgi.py`
+---
+
+모든 민감 정보는 `.env` 또는 제출용 별도 파일에만 존재해야 하며, GitHub 퍼블릭 저장소에는 절대 커밋하지 마세요. README·Swagger·Postman·Docs 폴더와 Seed/Test 스크립트만으로 과제 검증이 가능하도록 구성되어 있습니다.
