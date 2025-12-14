@@ -90,11 +90,12 @@ docker-compose down
 ## 6. DB 연결 정보 (예시)
 | 항목 | 값 |
 | --- | --- |
-| Host | `127.0.0.1` (로컬) |
+| Host | `localhost` |
 | Port | `3306` |
 | Schema | `bookstore` |
-| User | `bookstore` (해당 스키마 RW 권한) |
-| CLI | `mysql -u bookstore -p -h 127.0.0.1 bookstore` |
+| User | `bookstore` |
+| Password | `1234` |
+| CLI | `mysql -u bookstore -p1234 -h localhost bookstore` |
 
 실제 제출 시 사용 중인 DB 인스턴스/계정 정보를 별도 텍스트 파일로 제공하세요.
 
