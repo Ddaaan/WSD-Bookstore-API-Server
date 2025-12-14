@@ -17,7 +17,7 @@ class Book(db.Model):
     publisher = db.Column(db.String(255), nullable=True)
 
     # 출판일 
-    published_date = db.Column(db.Date, nullable=True)
+    published_at = db.Column(db.Date, nullable=True)
 
     stock_cnt = db.Column(db.Integer, nullable=False, default=0)
     status = db.Column(db.String(20), nullable=False, default="ACTIVE")
@@ -46,3 +46,6 @@ class Book(db.Model):
     wishlists = db.relationship("Wishlist", back_populates="book", lazy="dynamic")
     cart_items = db.relationship("Cart", back_populates="book", lazy="dynamic")
     order_items = db.relationship("OrderItem", back_populates="book", lazy="dynamic")
+
+    category_id = db.Column(db.BigInteger, db.ForeignKey("categories.id"), nullable=False, index=True)
+    category = db.relationship("Category", foreign_keys=[category_id])

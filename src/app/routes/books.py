@@ -14,9 +14,14 @@ def create_book():
     title = data.get("title")
     price = data.get("price")
     stock = data.get("stock_cnt", 0)
+    category_id = data.get("category_id")
 
-    if not title or price is None:
-        return jsonify({"message": "title, price 는 필수입니다."}), 400
+    if not title or price is None or not category_id:
+        return jsonify({"message": "title, price, category_id 는 필수입니다."}), 400
+
+    category = Category.query.get(category_id)
+    if not category:
+        return jsonify({"message": "카테고리를 찾을 수 없습니다."}), 404
 
     book = Book(
         title=title,
@@ -26,6 +31,7 @@ def create_book():
         published_at=data.get("published_at"),
         stock_cnt=stock,
         status=data.get("status", "ACTIVE"),
+        category_id=category_id,
     )
     db.session.add(book)
     db.session.commit()
@@ -35,8 +41,10 @@ def create_book():
         "title": book.title,
         "price": str(book.price),
         "stock_cnt": book.stock_cnt,
-        "status": book.status
+        "status": book.status,
+        "category_id": book.category_id,
     }), 201
+
 
 
 # 도서 목록 조회
@@ -117,10 +125,20 @@ def get_book(book_id):
     return jsonify({
         "id": book.id,
         "title": book.title,
-        "author": book.author,
-        "price": book.price,
-        "stock": book.stock
+        "description": book.description,
+        "price": str(book.price),
+        "isbn13": book.isbn13,
+        "published_at": book.published_at.isoformat() if book.published_at else None,
+        "stock_cnt": book.stock_cnt,
+        "status": book.status,
+        "category": {
+            "id": book.category_id,
+            "name": book.category.name if book.category else None
+        },
+        "created_at": book.created_at.isoformat(),
+        "updated_at": book.updated_at.isoformat(),
     }), 200
+
 
 
 # 도서 수정
@@ -131,13 +149,24 @@ def update_book(book_id):
         return jsonify({"message": "책을 찾을 수 없습니다."}), 404
 
     data = request.get_json() or {}
+
+    if "category_id" in data:
+        category = Category.query.get(data["category_id"])
+        if not category:
+            return jsonify({"message": "카테고리를 찾을 수 없습니다."}), 404
+        book.category_id = data["category_id"]
+
     book.title = data.get("title", book.title)
-    book.author = data.get("author", book.author)
+    book.description = data.get("description", book.description)
     book.price = data.get("price", book.price)
-    book.stock = data.get("stock", book.stock)
+    book.isbn13 = data.get("isbn13", book.isbn13)
+    book.published_at = data.get("published_at", book.published_at)
+    book.stock_cnt = data.get("stock_cnt", book.stock_cnt)
+    book.status = data.get("status", book.status)
 
     db.session.commit()
     return jsonify({"message": "수정되었습니다."}), 200
+
 
 
 # 도서 삭제
