@@ -158,7 +158,7 @@ def seed_books(authors, categories):
             description=f"{title} 에 대한 소개입니다.",
             price=price,
             stock_cnt=stock_cnt,
-            isbn=f"978-{random.randint(1000000000, 9999999999)}",
+            isbn13=f"978-{random.randint(1000000000, 9999999999)}",
             publisher="WSD 출판사",
             published_date=datetime.utcnow().date()
             - timedelta(days=random.randint(0, 365 * 3)),
