@@ -12,6 +12,9 @@ class Config:
     JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-key")
     JWT_ACCESS_EXPIRES_MIN = int(os.getenv("JWT_ACCESS_EXPIRES_MIN", "30"))
     JWT_REFRESH_EXPIRES_DAYS = int(os.getenv("JWT_REFRESH_EXPIRES_DAYS", "7"))
+    SWAGGER_UI_URL = "/docs"
+    SWAGGER_SPEC_URL = "/swagger.json"
+    SWAGGER_SPEC_PATH = os.path.join(BASE_DIR, "docs", "swagger.json")
 
 
 class DevConfig(Config):
