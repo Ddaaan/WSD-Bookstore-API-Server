@@ -16,7 +16,7 @@ class Book(db.Model):
     # 출판사 이름 (nullable 허용)
     publisher = db.Column(db.String(255), nullable=True)
 
-    # 출판일 
+    # 출판일
     published_at = db.Column(db.Date, nullable=True)
 
     stock_cnt = db.Column(db.Integer, nullable=False, default=0)

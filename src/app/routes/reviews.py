@@ -8,8 +8,6 @@ from ..error_codes import ErrorCodes
 
 bp = Blueprint("reviews", __name__)
 
-
-
 @bp.route("", methods=["POST"])
 def create_review():
     data = request.get_json() or {}
@@ -109,7 +107,6 @@ def list_reviews():
         **meta,
     }
     return jsonify(response), 200
-
 
 
 @bp.route("/<int:review_id>", methods=["GET"])

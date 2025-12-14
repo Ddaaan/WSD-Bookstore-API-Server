@@ -5,6 +5,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 env_path = os.path.join(BASE_DIR, ".env")
 load_dotenv(env_path)
 
+
 class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -30,7 +31,6 @@ class DevConfig(Config):
 class ProdConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI")
     DEBUG = False
-
 
 
 def get_config(name: str):
