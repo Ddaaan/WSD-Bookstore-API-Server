@@ -1,12 +1,13 @@
 from datetime import datetime
 from ..extensions import db
+from ._types import BigInt
 
 
 class Order(db.Model):
     __tablename__ = "orders"
 
-    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.BigInteger, db.ForeignKey("users.id"), nullable=False, index=True)
+    id = db.Column(BigInt, primary_key=True, autoincrement=True)
+    user_id = db.Column(BigInt, db.ForeignKey("users.id"), nullable=False, index=True)
 
     # PENDING, PAID, CANCELLED, SHIPPED, COMPLETED
     status = db.Column(db.String(20), nullable=False, default="PENDING")

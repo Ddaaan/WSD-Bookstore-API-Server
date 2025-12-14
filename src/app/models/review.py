@@ -1,13 +1,14 @@
 from datetime import datetime
 from ..extensions import db
+from ._types import BigInt
 
 
 class Review(db.Model):
     __tablename__ = "reviews"
 
-    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    book_id = db.Column(db.BigInteger, db.ForeignKey("books.id"), nullable=False, index=True)
-    user_id = db.Column(db.BigInteger, db.ForeignKey("users.id"), nullable=False, index=True)
+    id = db.Column(BigInt, primary_key=True, autoincrement=True)
+    book_id = db.Column(BigInt, db.ForeignKey("books.id"), nullable=False, index=True)
+    user_id = db.Column(BigInt, db.ForeignKey("users.id"), nullable=False, index=True)
 
     rating = db.Column(db.Integer, nullable=False)  # 1~5
     title = db.Column(db.String(150), nullable=True)

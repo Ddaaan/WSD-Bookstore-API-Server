@@ -1,13 +1,14 @@
 from datetime import datetime
 from ..extensions import db
+from ._types import BigInt
 
 
 class OrderItem(db.Model):
     __tablename__ = "order_items"
 
-    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    order_id = db.Column(db.BigInteger, db.ForeignKey("orders.id"), nullable=False, index=True)
-    book_id = db.Column(db.BigInteger, db.ForeignKey("books.id"), nullable=False, index=True)
+    id = db.Column(BigInt, primary_key=True, autoincrement=True)
+    order_id = db.Column(BigInt, db.ForeignKey("orders.id"), nullable=False, index=True)
+    book_id = db.Column(BigInt, db.ForeignKey("books.id"), nullable=False, index=True)
 
     quantity = db.Column(db.Integer, nullable=False, default=1)
     unit_price = db.Column(db.Numeric(12, 2), nullable=False)

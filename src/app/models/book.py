@@ -1,11 +1,12 @@
 from datetime import datetime
 from ..extensions import db
+from ._types import BigInt
 
 
 class Book(db.Model):
     __tablename__ = "books"
 
-    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    id = db.Column(BigInt, primary_key=True, autoincrement=True)
     title = db.Column(db.String(255), nullable=False, index=True)
     description = db.Column(db.Text, nullable=True)
     price = db.Column(db.Numeric(12, 2), nullable=False)
@@ -23,7 +24,7 @@ class Book(db.Model):
     status = db.Column(db.String(20), nullable=False, default="ACTIVE")
 
     # FK: authors.id
-    author_id = db.Column(db.BigInteger,
+    author_id = db.Column(BigInt,
                           db.ForeignKey("authors.id"),
                           nullable=False)
 
@@ -47,5 +48,5 @@ class Book(db.Model):
     cart_items = db.relationship("Cart", back_populates="book", lazy="dynamic")
     order_items = db.relationship("OrderItem", back_populates="book", lazy="dynamic")
 
-    category_id = db.Column(db.BigInteger, db.ForeignKey("categories.id"), nullable=False, index=True)
+    category_id = db.Column(BigInt, db.ForeignKey("categories.id"), nullable=False, index=True)
     category = db.relationship("Category", foreign_keys=[category_id])

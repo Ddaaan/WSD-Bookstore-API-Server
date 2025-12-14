@@ -1,11 +1,12 @@
 from datetime import datetime
 from ..extensions import db
+from ._types import BigInt
 
 
 class Author(db.Model):
     __tablename__ = "authors"
 
-    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    id = db.Column(BigInt, primary_key=True, autoincrement=True)
     name = db.Column(db.String(150), nullable=False)
     bio = db.Column(db.Text, nullable=True)
 
