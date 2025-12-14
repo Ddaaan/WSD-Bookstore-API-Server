@@ -26,4 +26,5 @@ pytest==8.3.3
 pytest-flask==1.3.0
 faker==30.8.1
 bcrypt
+flake8==7.3.0
 flask-swagger-ui==4.11.1

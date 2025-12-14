@@ -112,12 +112,12 @@ def create_order():
 
         book = Book.query.get(book_id)
         if not book:
-            raise ApiError(
-                status_code=404,
-                code=ErrorCodes.RESOURCE_NOT_FOUND,
-                message=f"도서를 찾을 수 없습니다.",
-                details={"book_id": book_id},
-            )
+        raise ApiError(
+            status_code=404,
+            code=ErrorCodes.RESOURCE_NOT_FOUND,
+            message="도서를 찾을 수 없습니다.",
+            details={"book_id": book_id},
+        )
 
         if book.stock_cnt is not None and book.stock_cnt < quantity:
             raise ApiError(
@@ -178,8 +178,6 @@ def list_orders():
       - page, size
       - sort=created_at,DESC
     """
-    from ..pagination import apply_pagination_and_sort
-
     query = Order.query.filter(Order.deleted_at.is_(None))
 
     # 기본: 본인 주문만

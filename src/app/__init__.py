@@ -27,7 +27,7 @@ def create_app(config_name="dev"):
 
     # 개발 단계: 자동 테이블 생성
     with app.app_context():
-        from .models import User, Book
+        from .models import User, Book  # noqa: F401
 
         db.create_all()
 
