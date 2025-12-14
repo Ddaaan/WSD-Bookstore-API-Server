@@ -68,6 +68,7 @@ def seed_users():
 
 def seed_categories():
     print("[*] Seeding categories...")
+
     names = [
         "소설",
         "에세이",
@@ -79,10 +80,22 @@ def seed_categories():
         "여행",
     ]
 
+    slugs = [
+        "novel",
+        "essay",
+        "self-help",
+        "it-programming",
+        "business",
+        "science",
+        "history",
+        "travel",
+    ]
+
     categories = []
-    for name in names:
+    for name, slug in zip(names, slugs):
         c = Category(
             name=name,
+            slug=slug,
         )
         categories.append(c)
 
