@@ -46,8 +46,8 @@ def seed_users():
         name="Admin",
         role="ADMIN",
         password_hash=generate_password_hash("Admin123!"),
-        is_active=True,
     )
+    users.append(admin)
 
     # 일반 사용자 9명
     for i in range(1, 10):
@@ -56,10 +56,8 @@ def seed_users():
             name=f"User{i}",
             role="USER",
             password_hash=generate_password_hash(f"User{i}123!"),
-            is_active=True,
         )
-    users.append(u)
-
+        users.append(u)
 
     db.session.add_all(users)
     db.session.commit()
@@ -85,7 +83,6 @@ def seed_categories():
     for name in names:
         c = Category(
             name=name,
-            description=f"{name} 관련 도서 카테고리입니다.",
         )
         categories.append(c)
 
@@ -94,6 +91,7 @@ def seed_categories():
 
     print(f"[*] Inserted {len(categories)} categories.")
     return categories
+
 
 
 def seed_authors():
