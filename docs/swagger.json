@@ -1,0 +1,400 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "WSD Bookstore API",
+    "description": "Auto-generated specification describing Assignment 2 endpoints (excerpt).",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Local development"
+    },
+    {
+      "url": "http://{{jcloud_host}}:{{jcloud_port}}",
+      "description": "JCloud deployment"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Book": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "title": { "type": "string", "example": "Designing APIs" },
+          "description": { "type": "string" },
+          "price": { "type": "string", "example": "15000.00" },
+          "isbn13": { "type": "string", "example": "9781234567890" },
+          "published_at": { "type": "string", "format": "date" },
+          "stock_cnt": { "type": "integer" },
+          "status": { "type": "string", "example": "ACTIVE" },
+          "category": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "integer" },
+              "name": { "type": "string" }
+            }
+          },
+          "author": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "integer" },
+              "name": { "type": "string" }
+            }
+          }
+        },
+        "required": ["id", "title", "price", "stock_cnt", "status"]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "timestamp": { "type": "string", "format": "date-time" },
+          "path": { "type": "string" },
+          "status": { "type": "integer" },
+          "code": { "type": "string" },
+          "message": { "type": "string" },
+          "details": { "type": "object" }
+        }
+      }
+    },
+    "responses": {
+      "UnauthorizedError": {
+        "description": "JWT missing or invalid",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "timestamp": "2025-12-14T05:45:00Z",
+              "path": "/books",
+              "status": 401,
+              "code": "UNAUTHORIZED",
+              "message": "Authorization header must follow 'Bearer <token>'.",
+              "details": {}
+            }
+          }
+        }
+      },
+      "ForbiddenError": {
+        "description": "Role does not allow this action",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "timestamp": "2025-12-14T05:45:00Z",
+              "path": "/books",
+              "status": 403,
+              "code": "FORBIDDEN",
+              "message": "You do not have permission to perform this action."
+            }
+          }
+        }
+      },
+      "NotFoundError": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "timestamp": "2025-12-14T05:45:00Z",
+              "path": "/books/9999",
+              "status": 404,
+              "code": "RESOURCE_NOT_FOUND",
+              "message": "Book could not be found."
+            }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "Validation failure",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "timestamp": "2025-12-14T05:45:00Z",
+              "path": "/books",
+              "status": 422,
+              "code": "VALIDATION_FAILED",
+              "message": "title, price, category_id, author_id are required.",
+              "details": {
+                "title": false
+              }
+            }
+          }
+        }
+      },
+      "ServerError": {
+        "description": "Unexpected failure",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "timestamp": "2025-12-14T05:45:00Z",
+              "path": "/books",
+              "status": 500,
+              "code": "INTERNAL_SERVER_ERROR",
+              "message": "서버 내부 오류가 발생했습니다."
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    { "BearerAuth": [] }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "로그인 및 JWT 발급",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string" },
+                  "password": { "type": "string" }
+                },
+                "required": ["email", "password"]
+              },
+              "example": {
+                "email": "admin@example.com",
+                "password": "Admin123!"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "로그인 성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+                  "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
+                  "user": {
+                    "id": 1,
+                    "email": "admin@example.com",
+                    "name": "Admin",
+                    "role": "ADMIN"
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        },
+        "security": []
+      }
+    },
+    "/books": {
+      "get": {
+        "tags": ["books"],
+        "summary": "도서 목록 검색",
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "keyword", "in": "query", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "min_price", "in": "query", "schema": { "type": "number" } },
+          { "name": "max_price", "in": "query", "schema": { "type": "number" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "목록 반환",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Book" }
+                    },
+                    "page": { "type": "integer" },
+                    "size": { "type": "integer" },
+                    "totalElements": { "type": "integer" },
+                    "totalPages": { "type": "integer" },
+                    "sort": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        },
+        "security": []
+      },
+      "post": {
+        "tags": ["books"],
+        "summary": "도서 등록",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "price": { "type": "number" },
+                  "category_id": { "type": "integer" },
+                  "author_id": { "type": "integer" },
+                  "stock_cnt": { "type": "integer" },
+                  "status": { "type": "string" }
+                },
+                "required": ["title", "price", "category_id", "author_id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "생성 성공",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Book" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/books/{book_id}": {
+      "get": {
+        "tags": ["books"],
+        "summary": "도서 상세 조회",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "도서 상세 정보",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Book" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        },
+        "security": []
+      },
+      "put": {
+        "tags": ["books"],
+        "summary": "도서 수정",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "수정 완료",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Book" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "delete": {
+        "tags": ["books"],
+        "summary": "도서 삭제",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "삭제 완료",
+            "content": {
+              "application/json": {
+                "example": { "message": "Book deleted." }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/orders": {
+      "post": {
+        "tags": ["orders"],
+        "summary": "주문 생성",
+        "responses": {
+          "201": {
+            "description": "생성 성공"
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": {
+            "description": "재고 부족",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": {
+                  "status": 409,
+                  "code": "STATE_CONFLICT",
+                  "message": "재고가 부족하여 주문할 수 없습니다."
+                }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "get": {
+        "tags": ["orders"],
+        "summary": "주문 목록 조회",
+        "responses": {
+          "200": {
+            "description": "목록 반환"
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    }
+  }
+}
