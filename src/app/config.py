@@ -15,6 +15,8 @@ class Config:
     SWAGGER_UI_URL = "/docs"
     SWAGGER_SPEC_URL = "/swagger.json"
     SWAGGER_SPEC_PATH = os.path.join(BASE_DIR, "docs", "swagger.json")
+    RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "200"))
+    RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
 
 
 class DevConfig(Config):

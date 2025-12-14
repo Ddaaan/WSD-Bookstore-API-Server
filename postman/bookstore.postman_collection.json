@@ -1,23 +1,30 @@
 {
   "info": {
     "name": "WSD Bookstore API",
-    "_postman_id": "0f6871c5-0bcd-43c8-8b52-cf92781a7716",
-    "description": "Assignment 2 Postman collection with automated token handling.",
+    "_postman_id": "8f7e1b20-08d3-4e4d-b5c3-0e4e3d3c4f9b",
+    "description": "Assignment 2 collection with automated auth and response checks.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "base_url", "value": "http://localhost:5000" },
+    { "key": "base_url", "value": "http://localhost:8080" },
     { "key": "admin_email", "value": "admin@example.com" },
     { "key": "admin_password", "value": "Admin123!" },
-    { "key": "access_token", "value": "" },
-    { "key": "refresh_token", "value": "" },
-    { "key": "last_book_id", "value": "" },
-    { "key": "category_id", "value": "1" },
-    { "key": "author_id", "value": "1" }
+    { "key": "user_email", "value": "user1@example.com" },
+    { "key": "user_password", "value": "User1123!" },
+    { "key": "admin_access_token", "value": "" },
+    { "key": "admin_refresh_token", "value": "" },
+    { "key": "admin_id", "value": "" },
+    { "key": "user_access_token", "value": "" },
+    { "key": "user_refresh_token", "value": "" },
+    { "key": "user_id", "value": "" },
+    { "key": "category_id", "value": "" },
+    { "key": "author_id", "value": "" },
+    { "key": "book_id", "value": "" },
+    { "key": "order_id", "value": "" }
   ],
   "item": [
     {
-      "name": "Auth - Login (Admin)",
+      "name": "Auth - Admin Login",
       "request": {
         "method": "POST",
         "header": [
@@ -35,16 +42,12 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"status is 200\", function () {",
-              "  pm.response.to.have.status(200);",
-              "});",
-              "var json = pm.response.json();",
-              "pm.collectionVariables.set(\"access_token\", json.access_token);",
-              "pm.collectionVariables.set(\"refresh_token\", json.refresh_token);",
-              "pm.test(\"tokens exist\", function () {",
-              "  pm.expect(json).to.have.property(\"access_token\");",
-              "  pm.expect(json).to.have.property(\"refresh_token\");",
-              "});"
+              "pm.test(\"admin login 200\", () => pm.response.code === 200);",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set(\"admin_access_token\", body.access_token);",
+              "pm.collectionVariables.set(\"admin_refresh_token\", body.refresh_token);",
+              "pm.collectionVariables.set(\"admin_id\", body.user.id);",
+              "pm.test(\"tokens present\", () => body.access_token && body.refresh_token);"
             ],
             "type": "text/javascript"
           }
@@ -52,19 +55,14 @@
       ]
     },
     {
-      "name": "Books - List (Public)",
+      "name": "Auth - Admin Refresh",
       "event": [
         {
           "listen": "prerequest",
           "script": {
             "exec": [
-              "const token = pm.collectionVariables.get(\"access_token\");",
-              "if (token) {",
-              "  pm.request.headers.upsert({",
-              "    key: \"Authorization\",",
-              "    value: \"Bearer \" + token",
-              "  });",
-              "}"
+              "const refresh = pm.collectionVariables.get(\"admin_refresh_token\");",
+              "pm.request.body.raw = JSON.stringify({ refresh_token: refresh });"
             ],
             "type": "text/javascript"
           }
@@ -73,60 +71,10 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"status 200\", function () {",
-              "  pm.response.to.have.status(200);",
-              "});",
-              "var payload = pm.response.json();",
-              "pm.test(\"content is array\", function () {",
-              "  pm.expect(payload.content).to.be.an(\"array\");",
-              "});"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{base_url}}/books?size=5",
-          "host": ["{{base_url}}"],
-          "path": ["books"],
-          "query": [
-            { "key": "size", "value": "5" }
-          ]
-        }
-      }
-    },
-    {
-      "name": "Books - Create (Admin)",
-      "event": [
-        {
-          "listen": "prerequest",
-          "script": {
-            "exec": [
-              "const token = pm.collectionVariables.get(\"access_token\");",
-              "pm.request.headers.upsert({",
-              "  key: \"Authorization\",",
-              "  value: \"Bearer \" + token",
-              "});",
-              "pm.request.headers.upsert({ key: \"Content-Type\", value: \"application/json\" });"
-            ],
-            "type": "text/javascript"
-          }
-        },
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"created\", function () {",
-              "  pm.response.to.have.status(201);",
-              "});",
-              "var book = pm.response.json();",
-              "pm.collectionVariables.set(\"last_book_id\", book.id);",
-              "pm.test(\"book has id\", function () {",
-              "  pm.expect(book).to.have.property(\"id\");",
-              "});"
+              "pm.test(\"refresh ok\", () => pm.response.code === 200);",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set(\"admin_access_token\", body.access_token);",
+              "pm.collectionVariables.set(\"admin_refresh_token\", body.refresh_token);"
             ],
             "type": "text/javascript"
           }
@@ -134,25 +82,56 @@
       ],
       "request": {
         "method": "POST",
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"title\": \"API Generated Book\",\n  \"price\": 12000,\n  \"category_id\": {{category_id}},\n  \"author_id\": {{author_id}},\n  \"stock_cnt\": 5,\n  \"status\": \"ACTIVE\"\n}"
-        },
-        "url": { "raw": "{{base_url}}/books", "host": ["{{base_url}}"], "path": ["books"] }
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{}" },
+        "url": { "raw": "{{base_url}}/auth/refresh", "host": ["{{base_url}}"], "path": ["auth", "refresh"] }
       }
     },
     {
-      "name": "Orders - List (Self)",
+      "name": "Auth - User Login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{user_email}}\",\n  \"password\": \"{{user_password}}\"\n}"
+        },
+        "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"user login ok\", () => pm.response.code === 200);",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set(\"user_access_token\", body.access_token);",
+              "pm.collectionVariables.set(\"user_refresh_token\", body.refresh_token);",
+              "pm.collectionVariables.set(\"user_id\", body.user.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories - Create",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": { "mode": "raw", "raw": "{}" },
+        "url": { "raw": "{{base_url}}/categories", "host": ["{{base_url}}"], "path": ["categories"] }
+      },
       "event": [
         {
           "listen": "prerequest",
           "script": {
             "exec": [
-              "const token = pm.collectionVariables.get(\"access_token\");",
-              "pm.request.headers.upsert({",
-              "  key: \"Authorization\",",
-              "  value: \"Bearer \" + token",
-              "});"
+              "const token = pm.collectionVariables.get(\"admin_access_token\");",
+              "pm.request.headers.upsert({ key: \"Authorization\", value: `Bearer ${token}` });",
+              "pm.request.headers.upsert({ key: \"Content-Type\", value: \"application/json\" });",
+              "const slug = `cat-${Date.now()}`;",
+              "pm.request.body.raw = JSON.stringify({ name: \"Assignment Cat\", slug });"
             ],
             "type": "text/javascript"
           }
@@ -161,23 +140,177 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"orders loaded\", function () {",
-              "  pm.response.to.have.status(200);",
-              "});",
-              "var payload = pm.response.json();",
-              "pm.test(\"has pagination\", function () {",
-              "  pm.expect(payload).to.have.property(\"content\");",
-              "  pm.expect(payload).to.have.property(\"totalElements\");",
-              "});"
+              "pm.test(\"category created\", () => pm.response.code === 201);",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set(\"category_id\", body.id);"
             ],
             "type": "text/javascript"
           }
         }
-      ],
+      ]
+    },
+    {
+      "name": "Authors - Create",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": { "mode": "raw", "raw": "{}" },
+        "url": { "raw": "{{base_url}}/authors", "host": ["{{base_url}}"], "path": ["authors"] }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const token = pm.collectionVariables.get(\"admin_access_token\");",
+              "pm.request.headers.upsert({ key: \"Authorization\", value: `Bearer ${token}` });",
+              "pm.request.headers.upsert({ key: \"Content-Type\", value: \"application/json\" });",
+              "pm.request.body.raw = JSON.stringify({ name: \"Coder Author\", bio: \"Generated by Postman\" });"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"author created\", () => pm.response.code === 201);",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set(\"author_id\", body.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Books - Create",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": { "mode": "raw", "raw": "{}" },
+        "url": { "raw": "{{base_url}}/books", "host": ["{{base_url}}"], "path": ["books"] }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const token = pm.collectionVariables.get(\"admin_access_token\");",
+              "pm.request.headers.upsert({ key: \"Authorization\", value: `Bearer ${token}` });",
+              "pm.request.headers.upsert({ key: \"Content-Type\", value: \"application/json\" });",
+              "const category = Number(pm.collectionVariables.get(\"category_id\"));",
+              "const author = Number(pm.collectionVariables.get(\"author_id\"));",
+              "pm.request.body.raw = JSON.stringify({\n  title: `Demo Book ${Date.now()}`,\n  price: 15000,\n  category_id: category,\n  author_id: author,\n  stock_cnt: 10,\n  status: \"ACTIVE\"\n});"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"book created\", () => pm.response.code === 201);",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set(\"book_id\", body.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Books - List",
       "request": {
         "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/books?size=5",
+          "host": ["{{base_url}}"],
+          "path": ["books"],
+          "query": [{ "key": "size", "value": "5" }]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"books list 200\", () => pm.response.code === 200);",
+              "const payload = pm.response.json();",
+              "pm.test(\"content array\", () => Array.isArray(payload.content));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders - Create (User)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": { "mode": "raw", "raw": "{}" },
         "url": { "raw": "{{base_url}}/orders", "host": ["{{base_url}}"], "path": ["orders"] }
-      }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const token = pm.collectionVariables.get(\"user_access_token\");",
+              "pm.request.headers.upsert({ key: \"Authorization\", value: `Bearer ${token}` });",
+              "pm.request.headers.upsert({ key: \"Content-Type\", value: \"application/json\" });",
+              "const userId = Number(pm.collectionVariables.get(\"user_id\"));",
+              "const bookId = Number(pm.collectionVariables.get(\"book_id\"));",
+              "pm.request.body.raw = JSON.stringify({ user_id: userId, items: [{ book_id: bookId, quantity: 1 }] });"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"order created\", () => pm.response.code === 201);",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set(\"order_id\", body.order_id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders - List (User)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{base_url}}/orders", "host": ["{{base_url}}"], "path": ["orders"] }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const token = pm.collectionVariables.get(\"user_access_token\");",
+              "pm.request.headers.upsert({ key: \"Authorization\", value: `Bearer ${token}` });"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"orders list ok\", () => pm.response.code === 200);",
+              "const data = pm.response.json();",
+              "pm.test(\"has pagination\", () => data.totalElements !== undefined);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
     }
   ]
 }

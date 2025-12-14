@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 
 from .config import get_config
 from .extensions import db
-from .error_handlers import register_error_handlers
+from .error_handlers import register_error_handlers, ApiError
+from .error_codes import ErrorCodes
 from .swagger import register_swagger
 
 
@@ -22,6 +23,7 @@ def create_app(config_name="dev"):
     register_error_handlers(app)
     register_swagger(app)
     register_request_logging(app)
+    register_rate_limit(app)
 
     # 개발 단계: 자동 테이블 생성
     with app.app_context():
@@ -52,6 +54,30 @@ def register_request_logging(app):
             duration_ms,
         )
         return response
+
+
+def register_rate_limit(app):
+    limit = app.config.get("RATE_LIMIT_REQUESTS", 0)
+    window = app.config.get("RATE_LIMIT_WINDOW_SECONDS", 60)
+    if not limit or limit <= 0 or window <= 0:
+        return
+
+    buckets: dict[str, list[float]] = {}
+
+    @app.before_request
+    def _enforce_rate_limit():
+        key = request.remote_addr or "anonymous"
+        now = perf_counter()
+        bucket = buckets.setdefault(key, [])
+        cutoff = now - window
+        bucket[:] = [ts for ts in bucket if ts >= cutoff]
+        if len(bucket) >= limit:
+            raise ApiError(
+                status_code=429,
+                code=ErrorCodes.TOO_MANY_REQUESTS,
+                message="Too many requests. Please try again later.",
+            )
+        bucket.append(now)
 
 
 def register_blueprints(app):

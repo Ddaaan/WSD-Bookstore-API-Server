@@ -33,6 +33,20 @@ python scripts/seed_data.py        # 200건 이상 샘플 데이터 삽입
 flask --app run run --host 0.0.0.0 --port 5000
 ```
 
+### Docker Compose (옵션)
+```bash
+# 1) 기본 env (필요 시 JWT_SECRET 등 export)
+export JWT_SECRET=super-secret
+
+# 2) 앱+MySQL 일괄 기동
+docker-compose up --build
+
+# 3) 로그 확인 후 http://localhost:8080 /docs 접속
+
+# 4) 중지
+docker-compose down
+```
+
 ## 3. 환경 변수 (.env.example 기준)
 | 이름 | 설명 |
 | --- | --- |
@@ -41,6 +55,8 @@ flask --app run run --host 0.0.0.0 --port 5000
 | `JWT_SECRET` | JWT 서명용 시크릿 |
 | `JWT_ACCESS_EXPIRES_MIN` | Access Token 만료(분) |
 | `JWT_REFRESH_EXPIRES_DAYS` | Refresh Token 만료(일) |
+| `RATE_LIMIT_REQUESTS` | 요청 허용 횟수(기본 200) |
+| `RATE_LIMIT_WINDOW_SECONDS` | 레이트리밋 윈도우 길이(기본 60초) |
 
 ## 4. 배포 주소 (제출 시 업데이트)
 | 항목 | URL |
@@ -112,12 +128,13 @@ flask --app run run --host 0.0.0.0 --port 5000
 - **API 설계**: `docs/api-design.md`
 - **DB 스키마**: `docs/db-schema.md` (ER 설명 + 인덱스/제약조건)
 - **아키텍처 노트**: `docs/architecture.md`
-- **자동화 테스트**: `pytest` 하위에 최소 20개 케이스를 작성할 수 있는 골격(테스트 스텁 자리 + fixtures) 포함. `pytest -q`로 실행.
+- **자동화 테스트**: `pytest` 기반의 20개 이상 통합/단위 테스트(`tests/test_api.py`)가 포함되어 있으며 `pytest -q`로 실행할 수 있습니다.
 
 ## 9. 성능/보안 고려 사항
 - JWT 서명 키 및 DB 비밀번호는 `.env`만 사용 (git 제외)
 - 비밀번호는 `werkzeug.security.generate_password_hash` 기반 해시 저장
 - 전역 요청/응답 로그(메서드, 경로, 상태코드, 지연시간) + 예상치 못한 예외 시 스택트레이스 로그 남김
+- 간단한 전역 레이트리밋(`RATE_LIMIT_REQUESTS` / `RATE_LIMIT_WINDOW_SECONDS`)을 통해 abusive traffic 방지
 - 검색 대상 칼럼 인덱스(`books.title`, `users.email`, FK 등) 설계
 - 향후 확장을 위해 Rate-limit/CORS 설정 훅을 `create_app`에 배치
 
@@ -127,7 +144,3 @@ flask --app run run --host 0.0.0.0 --port 5000
 3. Rate limit, CORS, JWT 블록리스트는 최소 구현 상태 → Redis 기반으로 확장 가능
 4. 테스트 커버리지를 20개 이상으로 확장하기 위한 추가 케이스(실패 케이스, RBAC, pagination edge) 계획
 5. Postman/Swagger 예시는 영어 기반이지만, 실제 운영 시 다국어 메시지 대응 필요
-
----
-
-모든 민감 정보는 `.env` 또는 제출용 별도 파일에만 존재해야 하며, GitHub 퍼블릭 저장소에는 절대 커밋하지 마세요. README·Swagger·Postman·Docs 폴더와 Seed/Test 스크립트만으로 과제 검증이 가능하도록 구성되어 있습니다.
